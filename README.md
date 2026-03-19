@@ -206,3 +206,4 @@ MIT — free to use, modify, and distribute.
 ## Hosted at
 
 - [GitHub.io](https://gijoe707.github.io/read-aloud-tamil/)read-aloud-tamil
+- Works on Edge browser. Has some trouble in brave browser.
