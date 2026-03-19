@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>தமிழ் வாசிப்பகம் · Tamil Book Reader</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Tamil:wght@300;400;600;700&family=Noto+Sans+Tamil:wght@300;400;500&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0e0b07;--surface:#171209;--panel:#1f1810;--border:#3a2e1e;
+  --accent:#c8922a;--accent2:#e8b84b;--gold-glow:#c8922a44;
+  --text:#f0e6d0;--text-muted:#9e8c6e;--text-dim:#6a5c43;
+  --green:#4caf7d;--green-bg:#4caf7d20;--red:#e05555;--red-bg:#e0555520;
+  --blue:#5b9bd5;--blue-bg:#5b9bd520;
+  --serif:'Noto Serif Tamil','Latha',serif;
+  --sans:'Noto Sans Tamil','Vijaya',sans-serif;
+  --display:'Playfair Display',serif;
+  --shadow:0 8px 32px #00000088;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--bg);color:var(--text);font-family:var(--serif);
+  min-height:100vh;overflow-x:hidden;
+  background-image:
+    radial-gradient(ellipse 80% 40% at 50% 0%,#2a1f0a22 0%,transparent 70%),
+    url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23c8922a' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* XP TOP BAR */
+#xpTopBar{height:5px;background:var(--border);position:sticky;top:0;z-index:300;overflow:hidden}
+#xpTopFill{height:100%;width:0%;background:linear-gradient(90deg,var(--green),var(--accent),var(--accent2));transition:width .5s ease,background .5s ease}
+
+/* SERVER NOTICE BANNER */
+#serverBanner{
+  background:linear-gradient(90deg,#1a2a1a,#162416);
+  border-bottom:1px solid #2d5a2d;
+  padding:8px 20px;font-family:var(--sans);font-size:11px;
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+}
+#serverBanner.http-proto{display:none}
+.banner-icon{font-size:16px;flex-shrink:0}
+.banner-text{color:#8fbc8f;flex:1;line-height:1.5}
+.banner-text strong{color:#b8e8b8}
+.banner-code{
+  background:#0a1a0a;border:1px solid #2d5a2d;
+  padding:2px 8px;border-radius:4px;font-family:monospace;
+  font-size:11px;color:#6ee96e;user-select:all;cursor:copy;
+}
+.banner-close{
+  background:none;border:none;color:#4a7a4a;font-size:16px;
+  cursor:pointer;padding:2px 6px;border-radius:4px;flex-shrink:0;
+}
+.banner-close:hover{color:#8fbc8f;background:#1a3a1a}
+
+/* HEADER */
+header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 22px;border-bottom:1px solid var(--border);
+  background:var(--surface);position:sticky;top:5px;z-index:100;
+  gap:10px;flex-wrap:wrap;
+}
+.logo{display:flex;flex-direction:column;gap:1px}
+.logo-ta{font-family:var(--serif);font-size:17px;font-weight:700;color:var(--accent2);line-height:1}
+.logo-en{font-family:var(--display);font-size:10px;font-style:italic;color:var(--text-muted);letter-spacing:.1em}
+.hud{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+
+/* Mic LED */
+#micLed{
+  display:flex;align-items:center;gap:6px;
+  background:var(--panel);border:1px solid var(--border);
+  padding:4px 11px;border-radius:20px;font-family:var(--sans);font-size:11px;
+  color:var(--text-dim);transition:all .3s;cursor:default;
+}
+#micLed .led{width:8px;height:8px;border-radius:50%;background:#444;transition:background .3s;flex-shrink:0}
+#micLed.armed .led{background:var(--green);box-shadow:0 0 6px var(--green);animation:led-breathe 2s ease infinite}
+#micLed.listening .led{background:var(--red);box-shadow:0 0 8px var(--red);animation:led-pulse 1s ease infinite}
+#micLed.paused-led .led{background:var(--accent);box-shadow:0 0 6px var(--accent)}
+@keyframes led-breathe{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes led-pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.3);opacity:.7}}
+#micLed .led-label{font-size:10.5px}
+
+.xp-pill{display:flex;align-items:center;gap:5px;background:var(--panel);border:1px solid var(--border);padding:4px 11px;border-radius:20px;font-family:var(--sans);font-size:12px}
+.xp-num{font-weight:700;color:var(--accent2);font-size:13px}
+.combo-pill{display:flex;align-items:center;gap:5px;background:var(--panel);border:1px solid var(--border);padding:4px 11px;border-radius:20px;font-family:var(--sans);font-size:12px;transition:all .3s}
+.combo-pill.hot{border-color:var(--accent);background:var(--gold-glow);animation:pulse-combo .6s ease}
+@keyframes pulse-combo{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+.combo-num{font-weight:700;color:var(--accent);font-size:13px}
+.badge-pills{display:flex;gap:5px}
+.badge-icon{font-size:16px;cursor:default;position:relative}
+.badge-icon[data-locked]{filter:grayscale(1);opacity:.3}
+.badge-icon[title]:hover::after{
+  content:attr(title);position:absolute;bottom:calc(100% + 4px);left:50%;
+  transform:translateX(-50%);background:#222;color:#fff;font-size:10px;
+  padding:3px 7px;border-radius:5px;white-space:nowrap;
+  font-family:var(--sans);pointer-events:none;z-index:999;
+}
+.voice-badge{font-family:var(--sans);font-size:10px;color:var(--text-dim);background:var(--panel);border:1px solid var(--border);padding:4px 10px;border-radius:20px;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* LAYOUT */
+.app{display:grid;grid-template-columns:252px 1fr;min-height:calc(100vh - 62px)}
+
+/* SIDEBAR */
+aside{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:15px 0;overflow-y:auto;position:sticky;top:62px;height:calc(100vh - 62px)}
+.sidebar-section{padding:0 14px 14px;border-bottom:1px solid var(--border);margin-bottom:12px}
+.sidebar-label{font-family:var(--sans);font-size:9px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--text-dim);margin-bottom:9px}
+.story-list{display:flex;flex-direction:column;gap:5px}
+.story-btn{background:var(--panel);border:1px solid transparent;color:var(--text-muted);font-family:var(--serif);font-size:12px;padding:8px 11px;border-radius:8px;cursor:pointer;text-align:left;transition:all .2s;line-height:1.4;position:relative}
+.story-btn:hover{border-color:var(--border);color:var(--text);background:#261e10}
+.story-btn.active{border-color:var(--accent);background:#261e10;color:var(--accent2)}
+.story-btn small{display:block;font-size:9px;color:var(--text-dim);margin-top:2px;font-family:var(--sans)}
+.story-stars{position:absolute;right:8px;top:8px;font-size:10px}
+.upload-zone{margin:0 14px;border:1.5px dashed var(--border);border-radius:10px;padding:14px 10px;text-align:center;cursor:pointer;transition:all .2s}
+.upload-zone:hover,.upload-zone.drag-over{border-color:var(--accent);background:var(--gold-glow)}
+.upload-zone .ui{font-size:19px;margin-bottom:4px}
+.upload-zone p{font-family:var(--sans);font-size:10px;color:var(--text-dim);line-height:1.5}
+.upload-zone p strong{color:var(--accent2);font-weight:500}
+#fileInput{display:none}
+.lifetime-stats{padding:0 14px 14px}
+.stat-row{display:flex;justify-content:space-between;align-items:center;font-family:var(--sans);font-size:11px;color:var(--text-muted);margin-bottom:6px}
+.stat-val{font-weight:700;color:var(--accent2)}
+
+/* MAIN */
+main{display:flex;flex-direction:column;overflow:hidden}
+.mode-bar{padding:8px 22px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.mode-btn{display:flex;align-items:center;gap:4px;padding:5px 13px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text-muted);font-family:var(--sans);font-size:11.5px;cursor:pointer;transition:all .2s;font-weight:500}
+.mode-btn.active{background:var(--accent);color:#0e0b07;border-color:var(--accent);font-weight:700}
+.mode-btn:not(.active):hover{border-color:var(--accent);color:var(--accent2)}
+.mode-sep{color:var(--text-dim);font-size:11px;margin:0 3px}
+.controls{padding:9px 22px;background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.btn-group{display:flex;align-items:center;gap:6px}
+.ctrl-btn{display:flex;align-items:center;gap:4px;padding:7px 13px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-muted);font-family:var(--sans);font-size:11.5px;cursor:pointer;transition:all .18s;font-weight:500;white-space:nowrap}
+.ctrl-btn:hover{border-color:var(--accent);color:var(--accent2)}
+.ctrl-btn.primary{background:var(--accent);color:#0e0b07;border-color:var(--accent);font-weight:700}
+.ctrl-btn.primary:hover{background:var(--accent2)}
+.ctrl-btn:disabled{opacity:.3;cursor:not-allowed;pointer-events:none}
+.ctrl-btn.danger{border-color:var(--red);color:var(--red)}
+.ctrl-btn.danger:hover{background:var(--red-bg)}
+.speed-control{display:flex;align-items:center;gap:7px;margin-left:auto}
+.speed-label{font-family:var(--sans);font-size:10.5px;color:var(--text-muted);white-space:nowrap}
+.speed-val{font-family:var(--sans);font-size:10.5px;font-weight:700;color:var(--accent2);min-width:27px;text-align:center}
+input[type=range]{-webkit-appearance:none;width:82px;height:4px;background:var(--border);border-radius:2px;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;background:var(--accent);border-radius:50%;cursor:pointer}
+
+/* Score bar */
+.score-bar{padding:6px 22px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.score-item{display:flex;align-items:center;gap:4px;font-family:var(--sans);font-size:10.5px;color:var(--text-muted)}
+.sn{font-weight:700;font-size:12px}
+.sn.green{color:var(--green)}.sn.red{color:var(--red)}.sn.gold{color:var(--accent2)}
+.progress-wrap{flex:1;min-width:80px}
+.progress-bg{height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--green),var(--accent2));transition:width .4s ease;width:0%}
+
+/* STT strip */
+.stt-strip{padding:6px 22px;min-height:32px;display:flex;align-items:center;gap:9px;font-family:var(--sans);font-size:11.5px;background:var(--bg);border-bottom:1px solid var(--border);transition:background .3s}
+.stt-strip.correct{background:var(--green-bg)}.stt-strip.wrong{background:var(--red-bg)}
+.stt-lbl{color:var(--text-dim);font-size:10px;white-space:nowrap}
+.stt-heard{color:var(--text);font-weight:500;font-family:var(--serif);font-size:14px;flex:1}
+.stt-heard.interim{color:var(--text-dim);font-style:italic}
+.stt-icon{font-size:14px}
+
+/* Book */
+.book-wrap{flex:1;overflow-y:auto;padding:34px 46px;scroll-behavior:smooth;position:relative}
+.book-title{font-family:var(--display);font-size:23px;font-weight:700;color:var(--accent2);text-align:center;margin-bottom:4px}
+.book-subtitle{font-family:var(--sans);font-size:10px;color:var(--text-dim);text-align:center;margin-bottom:30px;letter-spacing:.1em;text-transform:uppercase}
+.text-content{max-width:660px;margin:0 auto;line-height:2.2;font-size:20px}
+
+/* Words */
+.word{display:inline-block;padding:1px 3px;margin:1px 1px;border-radius:4px;cursor:pointer;border-bottom:2px solid transparent;transition:background .22s,border-color .22s,color .22s}
+.word:hover{background:#fff3b018}
+.word.active{background:#ffd76055;border-bottom-color:var(--accent);animation:word-bob .28s ease}
+@keyframes word-bob{0%{transform:translateY(0)}40%{transform:translateY(-3px)}100%{transform:translateY(0)}}
+.word.correct{background:var(--green-bg);border-bottom-color:var(--green);color:#6ee9a0}
+.word.wrong{background:var(--red-bg);border-bottom-color:var(--red);color:#f08080;animation:shake .32s ease}
+.word.read{color:var(--text-muted)}
+.word.tutor-wait{background:var(--blue-bg);border-bottom-color:var(--blue)}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-4px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
+.retry-prompt{display:inline-block;font-family:var(--sans);font-size:10px;color:var(--red);background:var(--red-bg);padding:2px 8px;border-radius:12px;margin-left:4px;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:scale(1)}}
+
+/* Tap hint */
+.tap-hint{display:inline-block;font-family:var(--sans);font-size:10px;color:var(--blue);background:var(--blue-bg);border:1px solid var(--blue);padding:2px 9px;border-radius:12px;margin-left:5px;cursor:pointer;animation:fadeIn .35s ease;vertical-align:middle}
+.tap-hint:hover{background:#5b9bd540}
+
+/* Floating XP */
+.xp-float{position:fixed;pointer-events:none;z-index:500;font-family:var(--sans);font-weight:700;font-size:15px;color:var(--accent2);text-shadow:0 0 8px var(--gold-glow);animation:xp-rise 1.1s ease forwards}
+@keyframes xp-rise{0%{opacity:1;transform:translateY(0) scale(1)}60%{opacity:1;transform:translateY(-40px) scale(1.15)}100%{opacity:0;transform:translateY(-70px) scale(.8)}}
+.xp-float.bonus{color:var(--green);font-size:13px}
+
+/* ADVENTURE GATE */
+#adventureGate{position:fixed;inset:0;z-index:600;background:#0e0b07ee;backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center}
+#adventureGate.hidden{display:none}
+.gate-card{background:linear-gradient(145deg,#1f1810,#2a1e0e);border:1px solid var(--accent);border-radius:24px;padding:52px 56px;text-align:center;max-width:480px;width:92%;box-shadow:0 32px 80px #000000cc,0 0 0 1px var(--gold-glow);animation:gate-rise .5s cubic-bezier(.34,1.56,.64,1)}
+@keyframes gate-rise{from{opacity:0;transform:translateY(30px) scale(.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+.gate-emoji{font-size:56px;margin-bottom:18px;display:block}
+.gate-title{font-family:var(--serif);font-size:26px;font-weight:700;color:var(--accent2);margin-bottom:8px}
+.gate-sub{font-family:var(--sans);font-size:13px;color:var(--text-muted);line-height:1.6;margin-bottom:28px}
+.gate-steps{background:var(--panel);border-radius:12px;padding:16px 20px;margin-bottom:28px;text-align:left}
+.gate-step{font-family:var(--sans);font-size:11.5px;color:var(--text-muted);display:flex;gap:10px;align-items:flex-start;margin-bottom:10px;line-height:1.5}
+.gate-step:last-child{margin-bottom:0}
+.gate-step-num{background:var(--accent);color:#0e0b07;width:20px;height:20px;border-radius:50%;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.gate-step code{background:#0e0b07;border:1px solid var(--border);padding:1px 6px;border-radius:4px;font-size:10.5px;color:var(--accent2);font-family:monospace}
+.adventure-btn{display:inline-flex;align-items:center;gap:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#0e0b07;border:none;padding:14px 36px;border-radius:50px;font-family:var(--sans);font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;box-shadow:0 6px 24px var(--gold-glow);letter-spacing:.03em}
+.adventure-btn:hover{transform:translateY(-2px);box-shadow:0 10px 32px var(--gold-glow)}
+.adventure-btn:active{transform:translateY(0)}
+.adventure-btn.loading{opacity:.7;cursor:wait}
+.gate-protocol-note{margin-top:18px;font-family:var(--sans);font-size:10px;color:var(--text-dim);line-height:1.5}
+.gate-protocol-note.file-warn{color:#e8a030}
+
+/* STAR MODAL */
+#starModal{display:none;position:fixed;inset:0;z-index:800;background:#00000099;backdrop-filter:blur(6px);align-items:center;justify-content:center}
+#starModal.show{display:flex}
+.star-card{background:linear-gradient(135deg,#1f1810,#261e10);border:1px solid var(--accent);border-radius:20px;padding:40px 50px;text-align:center;max-width:400px;width:90%;box-shadow:0 24px 80px #00000099;animation:card-pop .45s cubic-bezier(.34,1.56,.64,1)}
+@keyframes card-pop{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:scale(1)}}
+.star-row{display:flex;justify-content:center;gap:10px;margin:16px 0}
+.star-icon{font-size:46px;animation:star-fall .5s ease both}
+.star-icon:nth-child(1){animation-delay:.05s}.star-icon:nth-child(2){animation-delay:.2s}.star-icon:nth-child(3){animation-delay:.35s}
+@keyframes star-fall{from{opacity:0;transform:scale(0) rotate(-40deg)}to{opacity:1;transform:scale(1) rotate(0)}}
+.praise-ta{font-family:var(--serif);font-size:25px;font-weight:700;color:var(--accent2);margin-bottom:5px}
+.praise-en{font-family:var(--display);font-style:italic;font-size:14px;color:var(--text-muted);margin-bottom:18px}
+.modal-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;background:var(--panel);border-radius:12px;padding:14px;margin-bottom:20px}
+.mstat{font-family:var(--sans);font-size:11px;color:var(--text-muted)}
+.mstat b{display:block;font-size:15px;color:var(--text);margin-bottom:2px}
+.modal-xp{font-family:var(--sans);font-size:13px;color:var(--text-muted);margin-bottom:18px}
+.modal-xp span{font-weight:700;color:var(--accent2);font-size:16px}
+.badge-unlock{background:var(--gold-glow);border:1px solid var(--accent);border-radius:12px;padding:10px 16px;margin-bottom:18px;font-family:var(--sans);font-size:12px;color:var(--accent2);display:none}
+.badge-unlock.show{display:block;animation:fadeIn .4s ease}
+.modal-close{background:var(--accent);color:#0e0b07;border:none;padding:10px 32px;border-radius:24px;font-family:var(--sans);font-size:13px;font-weight:700;cursor:pointer;transition:background .2s}
+.modal-close:hover{background:var(--accent2)}
+
+/* Confetti */
+.confetti-piece{position:fixed;pointer-events:none;z-index:900;width:8px;height:8px;border-radius:2px;animation:confetti-fall linear forwards}
+@keyframes confetti-fall{0%{opacity:1;transform:translateY(0) rotate(0)}100%{opacity:0;transform:translateY(100vh) rotate(720deg)}}
+
+/* Empty state */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:14px;color:var(--text-dim);text-align:center;padding:60px 40px}
+.empty-state .bi{font-size:52px;opacity:.5}
+.empty-state h2{font-family:var(--serif);font-size:19px;color:var(--text-muted);font-weight:400}
+.empty-state p{font-family:var(--sans);font-size:12.5px;max-width:340px;line-height:1.7}
+
+/* Toast */
+#toast{position:fixed;bottom:22px;right:22px;background:var(--panel);border:1px solid var(--accent);color:var(--accent2);font-family:var(--sans);font-size:12px;padding:8px 15px;border-radius:8px;box-shadow:var(--shadow);opacity:0;transform:translateY(10px);transition:all .3s;z-index:700;pointer-events:none}
+#toast.show{opacity:1;transform:translateY(0)}
+
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}::-webkit-scrollbar-thumb:hover{background:var(--accent)}
+@media(max-width:768px){.app{grid-template-columns:1fr}aside{display:none}.book-wrap{padding:18px 12px}.controls{padding:7px 10px}}
+</style>
+</head>
+<body>
+
+<div id="serverBanner">
+  <span class="banner-icon">⚠️</span>
+  <div class="banner-text">
+    <strong>Mic permissions won't persist on file://</strong>
+    — Run via local server: <span class="banner-code">python -m http.server 8080</span>
+    then open <span class="banner-code">http://localhost:8080</span>
+    &nbsp;·&nbsp; Or use VS Code <strong>Live Server</strong>.
+  </div>
+  <button class="banner-close" onclick="this.parentElement.style.display='none'">✕</button>
+</div>
+
+<div id="xpTopBar"><div id="xpTopFill"></div></div>
+
+<header>
+  <div class="logo">
+    <span class="logo-ta">தமிழ் வாசிப்பகம்</span>
+    <span class="logo-en">Tamil Book Reader &amp; Tutor</span>
+  </div>
+  <div class="hud">
+    <div id="micLed" title="Microphone status">
+      <span class="led"></span>
+      <span class="led-label" id="ledLabel">மைக் இல்லை</span>
+    </div>
+    <div class="xp-pill">⚡ <span class="xp-num" id="xpDisplay">0</span> XP</div>
+    <div class="combo-pill" id="comboPill">🔥 <span class="combo-num" id="comboDisplay">0</span> தொடர்</div>
+    <div class="badge-pills">
+      <span class="badge-icon" id="badge0" data-locked title="புதியவர் — 50 XP">🌱</span>
+      <span class="badge-icon" id="badge1" data-locked title="வாசிப்பு வீரன் — 300 XP">⚔️</span>
+      <span class="badge-icon" id="badge2" data-locked title="தமிழ் அறிஞர் — 1000 XP">🏛️</span>
+    </div>
+    <div class="voice-badge" id="voiceBadge">குரல் தேடுகிறது...</div>
+  </div>
+</header>
+
+<div class="app">
+  <aside>
+    <div class="sidebar-section">
+      <div class="sidebar-label">கதைகள் · Stories</div>
+      <div class="story-list" id="storyList"></div>
+    </div>
+    <div class="sidebar-section lifetime-stats">
+      <div class="sidebar-label">வாழ்நாள் · Lifetime</div>
+      <div class="stat-row">மொத்த XP <span class="stat-val" id="ltXP">0</span></div>
+      <div class="stat-row">நட்சத்திரங்கள் <span class="stat-val" id="ltStars">⭐ 0</span></div>
+      <div class="stat-row">வார்த்தைகள் <span class="stat-val" id="ltWords">0</span></div>
+    </div>
+    <div>
+      <div class="sidebar-label" style="padding:0 14px 9px">கோப்பு · Upload</div>
+      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+        <div class="ui">📂</div>
+        <p><strong>கோப்பை இழுத்து விடுங்கள்</strong><br>அல்லது கிளிக் செய்யுங்கள்<br>
+        <span style="font-size:9px;color:var(--text-dim)">.txt · .pdf · .epub</span></p>
+      </div>
+      <input type="file" id="fileInput" accept=".txt,.pdf,.epub">
+    </div>
+  </aside>
+
+  <main>
+    <div class="mode-bar">
+      <button class="mode-btn active" id="modeRead" onclick="setMode('read')">📖 என்னிடம் படி</button>
+      <span class="mode-sep">|</span>
+      <button class="mode-btn" id="modeTutor" onclick="setMode('tutor')">🎤 ஆசிரியர் முறை</button>
+    </div>
+    <div class="controls">
+      <div class="btn-group">
+        <button class="ctrl-btn primary" id="btnPlay" onclick="startSession()">▶ படிக்க தொடங்கு</button>
+        <button class="ctrl-btn" id="btnPause" onclick="pauseSession()" disabled>⏸ இடைநிறுத்து</button>
+        <button class="ctrl-btn" id="btnResume" onclick="resumeSession()" disabled>▶ தொடர்</button>
+        <button class="ctrl-btn danger" id="btnStop" onclick="stopSession()" disabled>⏹ நிறுத்து</button>
+      </div>
+      <div class="speed-control">
+        <span class="speed-label">வேகம்</span>
+        <input type="range" id="speedSlider" min="0.8" max="1.5" step="0.05" value="1.0" oninput="updateSpeed(this.value)">
+        <span class="speed-val" id="speedVal">1.0×</span>
+      </div>
+    </div>
+    <div class="score-bar" id="scoreBar" style="display:none">
+      <div class="score-item">முன்னேற்றம்: <span class="sn gold" id="scorePct">0%</span></div>
+      <div class="score-item">✅ சரி: <span class="sn green" id="scoreCorrect">0</span></div>
+      <div class="score-item">❌ தவறு: <span class="sn red" id="scoreWrong">0</span></div>
+      <div class="progress-wrap"><div class="progress-bg"><div class="progress-fill" id="progressFill"></div></div></div>
+    </div>
+    <div class="stt-strip" id="sttStrip" style="display:none">
+      <span class="stt-lbl">கேட்டது:</span>
+      <span class="stt-heard" id="sttHeard">—</span>
+      <span class="stt-icon" id="sttIcon"></span>
+    </div>
+    <div class="book-wrap" id="bookWrap">
+      <div class="empty-state" id="emptyState">
+        <div class="bi">📖</div>
+        <h2>கதையைத் தேர்ந்தெடுங்கள்</h2>
+        <p>இடது பட்டியலில் ஒரு கதையை கிளிக் செய்யுங்கள்.</p>
+      </div>
+      <div id="bookContent" style="display:none">
+        <div class="book-title" id="bookTitle"></div>
+        <div class="book-subtitle" id="bookSubtitle"></div>
+        <div class="text-content" id="textContent"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ADVENTURE GATE -->
+<div id="adventureGate">
+  <div class="gate-card">
+    <span class="gate-emoji">🎙️</span>
+    <div class="gate-title">சாகசம் தொடங்கலாம்!</div>
+    <div class="gate-sub">
+      ஆசிரியர் முறை ஒரு நிரந்தர மைக்ரோஃபோன் அமர்வை பயன்படுத்துகிறது —
+      ஒவ்வொரு வார்த்தைக்கும் மீண்டும் கிளிக் தேவையில்லை.
+      <br><br>
+      <em style="color:var(--accent2);font-style:normal">Best experience: run via local server</em>
+    </div>
+    <div class="gate-steps">
+      <div class="gate-step">
+        <span class="gate-step-num">1</span>
+        <span>Terminal in this folder: <code>python -m http.server 8080</code></span>
+      </div>
+      <div class="gate-step">
+        <span class="gate-step-num">2</span>
+        <span>Open <code>http://localhost:8080</code> in Chrome or Edge</span>
+      </div>
+      <div class="gate-step">
+        <span class="gate-step-num">3</span>
+        <span>Click <strong style="color:var(--accent2)">Allow</strong> when prompted — browser remembers it permanently</span>
+      </div>
+    </div>
+    <button class="adventure-btn" id="adventureBtn" onclick="startAdventure()">
+      🚀 சாகசம் தொடங்கு · Start Adventure
+    </button>
+    <div class="gate-protocol-note" id="gateProtoNote"></div>
+  </div>
+</div>
+
+<!-- STAR MODAL -->
+<div id="starModal">
+  <div class="star-card">
+    <div class="praise-ta" id="praiseTa">அற்புதம்!</div>
+    <div class="praise-en" id="praiseEn">Wonderful!</div>
+    <div class="star-row" id="starRow"></div>
+    <div class="modal-stats">
+      <div class="mstat"><b id="ms1">0</b>சரியான வார்த்தைகள்</div>
+      <div class="mstat"><b id="ms2">0</b>தவறான வார்த்தைகள்</div>
+      <div class="mstat"><b id="ms3">0%</b>துல்லியம்</div>
+      <div class="mstat"><b id="ms4">0</b>அதிகபட்ச தொடர்</div>
+    </div>
+    <div class="modal-xp">இந்த அமர்வில்: <span id="msXP">0</span> XP</div>
+    <div class="badge-unlock" id="badgeUnlock"></div>
+    <button class="modal-close" onclick="closeModal()">தொடர்க →</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+// ═══════════════════════════════════════
+// STORIES
+// ═══════════════════════════════════════
+const STORIES=[
+  {id:"lion_mouse",title:"சிங்கமும் சுட்டியும்",subtitle:"ஈசாப் கதை",level:"எளிது · Beginner",
+   text:`ஒரு காட்டில் பெரிய சிங்கம் ஒன்று வசித்தது. அது ஒரு நாள் மரத்தடியில் ஆழ்ந்த தூக்கத்தில் இருந்தது.
+அப்போது ஒரு சுட்டி எலி அந்த வழியே ஓடி வந்தது. அது தெரியாமல் சிங்கத்தின் மேல் ஏறி ஓட ஆரம்பித்தது.
+சிங்கம் விழித்துக்கொண்டது. கோபமாக எலியைப் பிடித்தது. உன்னை விழுங்கி விடுவேன் என்று கர்ஜித்தது.
+மன்னிக்கவும் மன்னர் அவர்களே. தவறுதலாக நடந்துவிட்டது. என்னை விட்டுவிடுங்கள் என்று எலி கெஞ்சியது.
+சிங்கம் சிரித்தது. சுட்டி எலி எனக்கு என்ன உதவி செய்யும் என்று நினைத்து விட்டுவிட்டது.
+சில நாட்கள் கழித்து வேட்டைக்காரர்கள் சிங்கத்தை வலையில் சிக்க வைத்தனர்.
+அந்த சுட்டி எலி ஓடி வந்தது. தன் கூரிய பற்களால் வலையை கடித்து அறுத்தது. சிங்கம் சுதந்திரமடைந்தது.
+நீதி நன்மை செய்தால் நன்மை திரும்பும். யாரையும் சிறியவர் என்று நினைக்காதே.`},
+  {id:"crow_water",title:"காகமும் குடமும்",subtitle:"ஈசாப் கதை",level:"எளிது · Beginner",
+   text:`ஒரு கோடை காலம். வெயில் கொளுத்தியது. ஒரு காகம் தாகத்தால் தவித்தது.
+இறுதியில் ஒரு குடம் தென்பட்டது. குடத்தில் கொஞ்சமே தண்ணீர் இருந்தது. காகத்தின் அலகு தண்ணீரை எட்டவில்லை.
+காகம் சோர்ந்து போகவில்லை. சிந்தித்தது. சுற்றும் முற்றும் பார்த்தது.
+கீழே சிறிய கற்கள் கிடந்தன. காகம் ஒவ்வொரு கல்லாக எடுத்து குடத்தில் போட்டது.
+மெல்ல மெல்ல தண்ணீர் மேலே வந்தது. காகம் குடித்தது. தாகம் தீர்ந்தது.
+நீதி முயற்சி திருவினை ஆக்கும். சோர்வில்லாத முயற்சி எப்போதும் வெற்றி தரும்.`},
+  {id:"sun_wind",title:"வெயிலும் காற்றும்",subtitle:"ஈசாப் கதை",level:"எளிது · Beginner",
+   text:`ஒரு நாள் வெயிலுக்கும் காற்றுக்கும் சண்டை வந்தது. நான் தான் மிகவும் வலிமையானவன் என்று காற்று பீற்றியது.
+இல்லை நான் தான் என்று வெயில் சொன்னது.
+அப்போது ஒரு பயணி சாலையில் நடந்தான். அவனுக்கு ஒரு கோட்டு இருந்தது.
+யார் அவனது கோட்டை கழற்ற வைக்கிறோமோ அவன் தான் வலிமையானவன் என்று இருவரும் முடிவு செய்தனர்.
+காற்று பலமாக வீசியது. பயணி கோட்டை இன்னும் இறுக்கமாகப் பிடித்துக்கொண்டான். காற்று தோற்றது.
+பிறகு வெயில் மெல்லமாக காய்ந்தது. பயணி வியர்த்தான். தானே கோட்டைக் கழற்றினான்.
+நீதி அன்பும் மென்மையும் வன்மையை விட வலிமையானவை.`},
+  {id:"honey_bee",title:"உழைக்கும் தேனீ",subtitle:"இயற்கை கதை",level:"மிகவும் எளிது",
+   text:`ஒரு தோட்டத்தில் பல பூக்கள் பூத்திருந்தன. ரோஜா மல்லிகை தாமரை எல்லாம் மணம் வீசின.
+ஒரு தேனீ காலையில் கூட்டிலிருந்து புறப்பட்டது. அது ஒவ்வொரு பூவிலும் சென்றது.
+பூவில் அமர்ந்தது. தேனை சேகரித்தது. மகரந்தத்தை சுமந்தது.
+சோர்வே இல்லாமல் உழைத்தது. மாலையில் கூட்டுக்குத் திரும்பியது.
+குளிர் காலத்தில் அந்த தேன் எல்லா தேனீக்களுக்கும் உணவாயிற்று.
+நீதி ஒவ்வொரு நாளும் உழைத்து வாழ்வோம். நாளைக்காக சேர்த்து வைப்போம்.`},
+  {id:"thirukkural",title:"திருக்குறள்",subtitle:"திருவள்ளுவர்",level:"இடைநிலை · Intermediate",
+   text:`அகர முதல எழுத்தெல்லாம் ஆதி பகவன் முதற்றே உலகு.
+கற்க கசடறக் கற்பவை கற்றபின் நிற்க அதற்குத் தக.
+செய்யாமல் செய்த உதவிக்கு வையகமும் வானகமும் ஆற்றல் அரிது.
+அன்பிற்கும் உண்டோ அடைக்கும் தாழ் ஆர்வலர் புன்கணீர் பூசல் தரும்.
+ஒழுக்கம் விழுப்பந் தரலான் ஒழுக்கம் உயிரினும் ஓம்பப் படும்.`},
+  {id:"panchatantra",title:"சிங்கத்தின் உயிர்",subtitle:"பஞ்சதந்திரம்",level:"இடைநிலை · Intermediate",
+   text:`ஒரு ஊரில் நான்கு அந்தணர் நண்பர்கள் வாழ்ந்தனர். அவர்கள் கல்வியில் மிகவும் தேர்ந்தவர்கள்.
+ஒரு நாள் நால்வரும் வேற்று ஊருக்குப் பயணம் மேற்கொண்டனர்.
+வழியில் காட்டில் சிங்கத்தின் எலும்புகள் கிடந்தன.
+முதல் அந்தணர் எலும்புகளை ஒன்றாகச் சேர்த்தார். இரண்டாவது தோலும் மாமிசமும் தந்தார்.
+மூன்றாவது அந்தணர் உயிர் கொடுக்க முன்வந்தார். நான்காவது அந்தணர் தடுத்தார்.
+இது சிங்கம் உயிர் கொடுத்தால் நம்மை கொன்று விடும் என்று எச்சரித்தார்.
+மூவரும் பரிகசித்தனர். நான்காவது மரத்தில் ஏறிக்கொண்டார்.
+சிங்கம் எழுந்து மூவரையும் கொன்று விட்டது. நான்காவது அந்தணர் உயிர் தப்பினார்.
+நீதி கல்வி கற்பதை விட நடைமுறை அறிவு மிக முக்கியம்.`}
+];
+
+// ═══════════════════════════════════════
+// GLOBALS
+// ═══════════════════════════════════════
+let words=[], currentWordIdx=-1;
+let mode='read';
+const synth=window.speechSynthesis;
+let voiceTa=null, currentSpeed=1.0;
+let isPaused=false, isRunning=false;
+let currentStoryId=null;
+
+// Recognition state
+let recognition=null;
+let micArmed=false;
+let recognitionActive=false;
+let tutorListening=false;
+let autoRestartTimer=null;
+let processingResult=false;
+
+// Session stats
+let retryCount=0, sessCorrect=0, sessWrong=0, sessXP=0, sessMaxCombo=0;
+
+// Gamification
+let xpTotal=0, comboCount=0, lifetimeStars=0, lifetimeWords=0;
+const XP_FIRST=10, XP_RETRY=2, COMBO_THRESH=5;
+const BADGES=[
+  {id:'badge0',xp:50,name:'புதியவர்',en:'Beginner',icon:'🌱'},
+  {id:'badge1',xp:300,name:'வாசிப்பு வீரன்',en:'Reading Hero',icon:'⚔️'},
+  {id:'badge2',xp:1000,name:'தமிழ் அறிஞர்',en:'Tamil Scholar',icon:'🏛️'}
+];
+const PRAISE=[
+  {ta:'அற்புதம்!',en:'Wonderful!'},
+  {ta:'மிக நன்று!',en:'Very Good!'},
+  {ta:'சாதனை!',en:'Achievement!'},
+  {ta:'நன்றாக படித்தாய்!',en:'Well Read!'},
+  {ta:'வாழ்த்துக்கள்!',en:'Congratulations!'}
+];
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+window.addEventListener('DOMContentLoaded',()=>{
+  detectProtocol();
+  loadLifetime();
+  buildStoryList();
+  loadVoices();
+  synth.onvoiceschanged=loadVoices;
+  setupDrag();
+  setupFileInput();
+
+  const saved=localStorage.getItem('tamilReader_v4');
+  if(saved){
+    try{
+      const s=JSON.parse(saved);
+      const story=STORIES.find(x=>x.id===s.storyId);
+      if(story){
+        loadStory(story,false);
+        if(s.wordIdx>0){currentWordIdx=s.wordIdx;scrollToWord(s.wordIdx);toast('கடைசியாக படித்த இடத்திலிருந்து ✦');}
+      }
+    }catch(e){}
+  }
+});
+
+// ═══════════════════════════════════════
+// PROTOCOL DETECTION
+// ═══════════════════════════════════════
+function detectProtocol(){
+  const isFile=location.protocol==='file:';
+  document.getElementById('serverBanner').className=isFile?'':'http-proto';
+  const note=document.getElementById('gateProtoNote');
+  if(isFile){
+    note.className='gate-protocol-note file-warn';
+    note.textContent='⚠ file:// detected — mic permission will not be saved between visits. Use localhost to fix.';
+  }else{
+    note.className='gate-protocol-note';
+    note.textContent='✅ '+location.origin+' — mic permission will be saved permanently.';
+  }
+}
+
+// ═══════════════════════════════════════
+// VOICE
+// ═══════════════════════════════════════
+function loadVoices(){
+  const all=synth.getVoices();
+  const ta=all.filter(v=>v.lang==='ta-IN'||v.lang.startsWith('ta'));
+  voiceTa=ta.find(v=>v.name.includes('Neural'))||ta.find(v=>v.name.includes('Valluvar'))||ta[0]||null;
+  document.getElementById('voiceBadge').textContent=voiceTa?'🎙 '+voiceTa.name:'⚠ குரல் இல்லை';
+}
+
+// ═══════════════════════════════════════
+// WARM-UP — fixes muted first word
+// ═══════════════════════════════════════
+function warmUp(){
+  return new Promise(resolve=>{
+    synth.cancel();
+    const u=new SpeechSynthesisUtterance('ஒ');
+    u.volume=0.01;u.rate=2;u.lang='ta-IN';
+    if(voiceTa)u.voice=voiceTa;
+    let done=false;
+    const finish=()=>{if(!done){done=true;resolve();}};
+    u.onend=finish;u.onerror=finish;
+    synth.speak(u);
+    setTimeout(finish,800);
+  });
+}
+
+// ═══════════════════════════════════════
+// ADVENTURE GATE
+// ═══════════════════════════════════════
+async function startAdventure(){
+  const btn=document.getElementById('adventureBtn');
+  const gate=document.getElementById('adventureGate');
+  btn.classList.add('loading');
+  btn.textContent='🎙 மைக் அனுமதி தேடுகிறது...';
+
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){
+    btn.classList.remove('loading');
+    btn.textContent='❌ இந்த உலாவி STT ஆதரிக்காது';
+    toast('Chrome அல்லது Edge பயன்படுத்துங்கள்');
+    setTimeout(()=>gate.classList.add('hidden'),2000);
+    return;
+  }
+
+  // Request mic permission — safely guarded for file:// where mediaDevices may be undefined
+  if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){
+    try{
+      const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      stream.getTracks().forEach(t=>t.stop());
+    }catch(e){
+      console.warn('getUserMedia:',e.message);
+    }
+  }
+
+  initRecognition();
+  gate.classList.add('hidden');
+  setLED('armed');
+  toast('மைக் தயார்! கதையை தேர்ந்தெடுத்து தொடங்குங்கள் 🎙');
+}
+
+// ═══════════════════════════════════════
+// CONTINUOUS RECOGNITION
+// ═══════════════════════════════════════
+function initRecognition(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR||recognition)return;
+
+  recognition=new SR();
+  recognition.lang='ta-IN';
+  recognition.continuous=true;
+  recognition.interimResults=true;
+  recognition.maxAlternatives=3;
+
+  recognition.onstart=()=>{
+    recognitionActive=true;
+    clearTimeout(autoRestartTimer);
+    if(tutorListening)setLED('listening');
+    else if(micArmed)setLED('armed');
+  };
+
+  recognition.onresult=(e)=>{
+    let interim='',final='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const t=e.results[i][0].transcript;
+      if(e.results[i].isFinal)final+=t;
+      else interim+=t;
+    }
+    if(mode==='tutor'&&isRunning){
+      const el=document.getElementById('sttHeard');
+      el.textContent=(final||interim)||'—';
+      el.className=interim&&!final?'stt-heard interim':'stt-heard';
+    }
+    if(!tutorListening||processingResult||!isRunning||isPaused)return;
+    if(!final.trim())return;
+    processingResult=true;
+    handleSTT(currentWordIdx,final.trim());
+  };
+
+  recognition.onerror=(e)=>{
+    recognitionActive=false;
+    if(e.error==='not-allowed'||e.error==='service-not-allowed'){
+      micArmed=false;tutorListening=false;
+      setLED('off');
+      toast('மைக் அனுமதி மறுக்கப்பட்டது.');
+      document.getElementById('adventureGate').classList.remove('hidden');
+      return;
+    }
+    if(e.error==='aborted')return;
+    if(micArmed&&mode==='tutor'&&isRunning&&!isPaused)scheduleRestart(500);
+  };
+
+  recognition.onend=()=>{
+    recognitionActive=false;
+    // Ghost-restart: only when tutor session is active
+    if(micArmed&&mode==='tutor'&&isRunning&&!isPaused){
+      scheduleRestart(300);
+    }
+  };
+
+  micArmed=true;
+}
+
+function startRecognition(){
+  if(!recognition||recognitionActive)return;
+  try{recognition.start();}catch(e){
+    if(!e.message.includes('already'))console.warn('recognition.start:',e.message);
+  }
+}
+
+function scheduleRestart(delay=300){
+  clearTimeout(autoRestartTimer);
+  autoRestartTimer=setTimeout(()=>{
+    if(micArmed&&mode==='tutor'&&isRunning&&!isPaused&&!recognitionActive)startRecognition();
+  },delay);
+}
+
+function stopRecognitionForSession(){
+  // Called on pause/stop — mutes result processing but does NOT abort the engine
+  // so it can restart cleanly for the next word
+  clearTimeout(autoRestartTimer);
+  tutorListening=false;
+  processingResult=false;
+}
+
+// ═══════════════════════════════════════
+// MIC LED
+// ═══════════════════════════════════════
+function setLED(state){
+  const led=document.getElementById('micLed');
+  const lbl=document.getElementById('ledLabel');
+  led.className='';
+  switch(state){
+    case 'armed':     led.className='armed';      lbl.textContent='மைக் தயார்';   break;
+    case 'listening': led.className='listening';  lbl.textContent='கேட்கிறது...'; break;
+    case 'paused':    led.className='paused-led'; lbl.textContent='இடைநிறுத்து'; break;
+    default:          lbl.textContent='மைக் இல்லை';
+  }
+}
+
+// ═══════════════════════════════════════
+// XP / GAMIFICATION
+// ═══════════════════════════════════════
+function calcXP(isFirstAttempt){
+  const base=isFirstAttempt?XP_FIRST:XP_RETRY;
+  return base*(comboCount>=COMBO_THRESH?2:1);
+}
+function awardXP(pts,el){
+  xpTotal+=pts;sessXP+=pts;
+  updateXPDisplay();floatXP(pts,el);checkBadges();saveLifetime();
+}
+function updateXPDisplay(){
+  document.getElementById('xpDisplay').textContent=xpTotal;
+  const pct=xpTotal%100;
+  const fill=document.getElementById('xpTopFill');
+  fill.style.width=pct+'%';
+  fill.style.background=pct>80?'linear-gradient(90deg,#e8b84b,#ff9900)':pct>50?'linear-gradient(90deg,#4caf7d,#e8b84b)':'linear-gradient(90deg,#4caf7d,#c8922a,#e8b84b)';
+}
+function updateComboDisplay(){
+  document.getElementById('comboDisplay').textContent=comboCount;
+  document.getElementById('comboPill').classList.toggle('hot',comboCount>=COMBO_THRESH);
+}
+function checkBadges(){
+  let nb=null;
+  BADGES.forEach(b=>{
+    const el=document.getElementById(b.id);
+    if(xpTotal>=b.xp&&el.hasAttribute('data-locked')){
+      el.removeAttribute('data-locked');
+      el.title=b.name+' ('+b.en+') — திறக்கப்பட்டது!';
+      nb=b;
+    }
+  });
+  return nb;
+}
+function floatXP(pts,el){
+  const div=document.createElement('div');
+  div.className='xp-float'+(pts===XP_RETRY?' bonus':'');
+  div.textContent='+'+pts+' XP'+(pts>XP_FIRST?' 🔥':'');
+  if(el){const r=el.getBoundingClientRect();div.style.left=(r.left+r.width/2-20)+'px';div.style.top=(r.top-10)+'px';}
+  else{div.style.left='50%';div.style.top='40%';}
+  document.body.appendChild(div);
+  setTimeout(()=>div.remove(),1200);
+}
+
+// ═══════════════════════════════════════
+// STARS & MODAL
+// ═══════════════════════════════════════
+function calcStars(correct,wrong){
+  const total=correct+wrong;
+  if(total===0)return 1;
+  if(correct/total===1)return 3;
+  if(wrong<=Math.ceil(total*.2))return 2;
+  return 1;
+}
+const CONFETTI_COLORS=['#c8922a','#e8b84b','#4caf7d','#5b9bd5','#e05555','#f0e6d0'];
+function spawnConfetti(n=36){
+  for(let i=0;i<n;i++){
+    const p=document.createElement('div');p.className='confetti-piece';
+    p.style.cssText='left:'+Math.random()*100+'vw;top:-10px;background:'+CONFETTI_COLORS[Math.floor(Math.random()*6)]+';transform:rotate('+Math.random()*360+'deg);animation-duration:'+(1.5+Math.random()*2)+'s;animation-delay:'+(Math.random()*.6)+'s';
+    document.body.appendChild(p);setTimeout(()=>p.remove(),4000);
+  }
+}
+function showStarModal(stars,correct,wrong){
+  const acc=correct+wrong===0?100:Math.round(correct/(correct+wrong)*100);
+  const p=PRAISE[stars===3?0:stars===2?1:Math.floor(Math.random()*3)+2];
+  document.getElementById('praiseTa').textContent=p.ta;
+  document.getElementById('praiseEn').textContent=p.en;
+  const row=document.getElementById('starRow');row.innerHTML='';
+  for(let i=0;i<3;i++){const s=document.createElement('span');s.className='star-icon';s.textContent=i<stars?'⭐':'☆';row.appendChild(s);}
+  document.getElementById('ms1').textContent=correct;
+  document.getElementById('ms2').textContent=wrong;
+  document.getElementById('ms3').textContent=acc+'%';
+  document.getElementById('ms4').textContent=sessMaxCombo;
+  document.getElementById('msXP').textContent=sessXP;
+  const nb=checkBadges();
+  const bu=document.getElementById('badgeUnlock');
+  if(nb){bu.textContent='🏆 புதிய பதக்கம்: '+nb.icon+' '+nb.name+' ('+nb.en+')';bu.classList.add('show');}
+  else bu.classList.remove('show');
+  document.getElementById('starModal').classList.add('show');
+  if(stars===3)spawnConfetti(48);else if(stars===2)spawnConfetti(22);
+  playHarp(stars);
+  lifetimeStars+=stars;saveLifetime();updateLifetimeUI();
+  updateStoryBadge(currentStoryId,stars);
+}
+function closeModal(){
+  document.getElementById('starModal').classList.remove('show');
+  sessCorrect=0;sessWrong=0;sessXP=0;sessMaxCombo=0;
+}
+
+// ═══════════════════════════════════════
+// TOKENISE / RENDER
+// ═══════════════════════════════════════
+function tokenize(t){return t.trim().replace(/\r\n/g,'\n').split(/\s+/).filter(w=>w.length>0);}
+function cleanWord(w){return w.replace(/^[.,!?;:"'«»\u0964\u0965.()\[\]]+|[.,!?;:"'«»\u0964\u0965.()\[\]]+$/g,'').trim();}
+
+function renderWords(rawText,startIdx){
+  const raw=tokenize(rawText);
+  words=raw.map(w=>({text:w,clean:cleanWord(w),el:null,retries:0}));
+  currentWordIdx=startIdx!==null?startIdx-1:currentWordIdx;
+  const container=document.getElementById('textContent');container.innerHTML='';
+  const lines=rawText.split('\n');
+  const lineMap=[];
+  lines.forEach((line,li)=>line.trim().split(/\s+/).filter(Boolean).forEach(()=>lineMap.push(li)));
+  let prevLine=-1;
+  words.forEach((w,i)=>{
+    const li=lineMap[i]??0;
+    if(li!==prevLine&&prevLine!==-1)container.appendChild(document.createElement('br'));
+    prevLine=li;
+    const span=document.createElement('span');
+    span.className='word';span.id='word_'+i;span.textContent=w.text;
+    span.onclick=()=>clickWord(i);
+    w.el=span;
+    container.appendChild(span);container.appendChild(document.createTextNode(' '));
+  });
+  updateProgressBar(Math.max(0,currentWordIdx));
+}
+
+function clickWord(idx){
+  if(mode==='tutor'&&isRunning&&!isPaused){
+    if(idx===currentWordIdx){
+      // Tap active word → speak it as pronunciation model
+      removeTapHint();
+      speakWordAloud(idx);
+      return;
+    }
+    stopSession();currentWordIdx=idx;startSession();
+    return;
+  }
+  if(isRunning){stopSession();currentWordIdx=idx;startSession();return;}
+  // One-shot preview
+  synth.cancel();clearActive();setWordCls(idx,'active');scrollToWord(idx);
+  const speakIt=()=>{
+    const u=new SpeechSynthesisUtterance(words[idx].text);
+    u.lang='ta-IN';u.rate=currentSpeed;if(voiceTa)u.voice=voiceTa;
+    u.onend=()=>setWordCls(idx,'');u.onerror=()=>setWordCls(idx,'');
+    synth.speak(u);
+  };
+  const wu=new SpeechSynthesisUtterance('ஒ');wu.volume=0.01;wu.rate=2;wu.lang='ta-IN';if(voiceTa)wu.voice=voiceTa;
+  let done=false;const go=()=>{if(!done){done=true;speakIt();}};
+  wu.onend=go;wu.onerror=go;synth.speak(wu);setTimeout(go,700);
+}
+
+// ═══════════════════════════════════════
+// MODE
+// ═══════════════════════════════════════
+function setMode(m){
+  mode=m;
+  document.getElementById('modeRead').classList.toggle('active',m==='read');
+  document.getElementById('modeTutor').classList.toggle('active',m==='tutor');
+  document.getElementById('sttStrip').style.display=m==='tutor'?'flex':'none';
+  document.getElementById('scoreBar').style.display=m==='tutor'?'flex':'none';
+  document.getElementById('btnPlay').textContent=m==='tutor'?'▶ ஆசிரியர் தொடங்கு':'▶ படிக்க தொடங்கு';
+  stopSession();
+}
+
+// ═══════════════════════════════════════
+// SESSION CONTROL
+// ═══════════════════════════════════════
+async function startSession(){
+  if(!words.length){toast('முதலில் ஒரு கதையை தேர்ந்தெடுங்கள்');return;}
+  if(mode==='tutor'&&!micArmed){
+    toast('முதலில் "Start Adventure" கிளிக் செய்யுங்கள்');
+    document.getElementById('adventureGate').classList.remove('hidden');
+    return;
+  }
+  stopSession();setBtn('playing');
+  await warmUp();
+  isRunning=true;isPaused=false;
+  if(currentWordIdx<0||currentWordIdx>=words.length)currentWordIdx=0;
+  mode==='read'?readWordAt(currentWordIdx):tutorWordAt(currentWordIdx);
+}
+function pauseSession(){
+  if(!isRunning)return;
+  isPaused=true;synth.pause();
+  stopRecognitionForSession();
+  setLED('paused');setBtn('paused');
+}
+function resumeSession(){
+  if(!isRunning||!isPaused)return;
+  isPaused=false;setBtn('playing');
+  if(mode==='read')synth.resume();
+  else tutorWordAt(currentWordIdx);
+}
+function stopSession(){
+  isRunning=false;isPaused=false;synth.cancel();
+  stopRecognitionForSession();
+  if(micArmed)setLED('armed');else setLED('off');
+  clearActive();setBtn('stopped');
+}
+
+// ═══════════════════════════════════════
+// READ MODE
+// ═══════════════════════════════════════
+function readWordAt(idx){
+  if(!isRunning||isPaused)return;
+  if(idx>=words.length){stopSession();showStarModal(calcStars(sessCorrect,sessWrong),sessCorrect,sessWrong);return;}
+  currentWordIdx=idx;
+  setWordCls(idx,'active');scrollToWord(idx);saveSession(idx);updateProgressBar(idx);
+  const u=new SpeechSynthesisUtterance(words[idx].text);
+  u.lang='ta-IN';u.rate=currentSpeed;if(voiceTa)u.voice=voiceTa;
+  u.onend=()=>{if(!isRunning||isPaused)return;setWordCls(idx,'read');readWordAt(idx+1);};
+  u.onerror=(e)=>{if(e.error==='interrupted')return;if(!isRunning||isPaused)return;setWordCls(idx,'read');readWordAt(idx+1);};
+  synth.speak(u);
+}
+
+// ═══════════════════════════════════════
+// TUTOR MODE — silent-first
+// Student reads first; TTS only on tap or 2nd wrong
+// ═══════════════════════════════════════
+function tutorWordAt(idx){
+  if(!isRunning||isPaused)return;
+  if(idx>=words.length){stopSession();showStarModal(calcStars(sessCorrect,sessWrong),sessCorrect,sessWrong);return;}
+  currentWordIdx=idx;retryCount=0;words[idx].retries=0;
+  processingResult=false;tutorListening=false;
+  updateProgressBar(idx);saveSession(idx);
+  clearActive();setWordCls(idx,'tutor-wait active');scrollToWord(idx);
+  showTapHint(idx);
+  // Open mic after a brief settle — no TTS
+  setTimeout(()=>{
+    if(!isRunning||!micArmed||isPaused)return;
+    tutorListening=true;processingResult=false;
+    setLED('listening');
+    if(!recognitionActive)startRecognition();
+  },300);
+}
+
+function showTapHint(idx){
+  removeTapHint();
+  const w=words[idx];if(!w||!w.el)return;
+  const tip=document.createElement('span');
+  tip.id='tapHint';tip.className='tap-hint';
+  tip.textContent='👆 தட்டி கேளுங்கள்';
+  tip.onclick=(e)=>{e.stopPropagation();clickWord(idx);};
+  w.el.after(tip);
+}
+function removeTapHint(){const old=document.getElementById('tapHint');if(old)old.remove();}
+
+function openMicAfterTTS(){
+  if(!isRunning||!micArmed||isPaused)return;
+  setTimeout(()=>{
+    if(!isRunning||!micArmed||isPaused)return;
+    tutorListening=true;processingResult=false;
+    setLED('listening');
+    if(!recognitionActive)startRecognition();
+  },350);
+}
+
+// Speak word aloud on demand (tap or 2nd wrong)
+function speakWordAloud(idx,onDone){
+  tutorListening=false;processingResult=false;
+  synth.cancel();
+  const u=new SpeechSynthesisUtterance(words[idx].text);
+  u.lang='ta-IN';u.rate=Math.min(currentSpeed,.9);if(voiceTa)u.voice=voiceTa;
+  u.onend=()=>{if(onDone)onDone();else openMicAfterTTS();};
+  u.onerror=()=>{if(onDone)onDone();else openMicAfterTTS();};
+  synth.speak(u);
+}
+
+// Syllable hint on 3rd wrong
+function speakHint(idx){
+  tutorListening=false;processingResult=false;
+  synth.cancel();
+  const syllables=(words[idx].clean.match(/[\u0B80-\u0BFF]{1,3}/g)||[words[idx].clean]);
+  const u=new SpeechSynthesisUtterance('கவனி: '+syllables.join(' - '));
+  u.lang='ta-IN';u.rate=0.72;if(voiceTa)u.voice=voiceTa;
+  u.onend=()=>openMicAfterTTS();
+  synth.speak(u);
+}
+
+// ═══════════════════════════════════════
+// STT HANDLER
+// ═══════════════════════════════════════
+function handleSTT(idx,transcript){
+  tutorListening=false;processingResult=false;
+  const match=fuzzyMatch(transcript,words[idx].clean);
+  document.getElementById('sttHeard').textContent=transcript||'(எதுவும் கேட்கவில்லை)';
+  document.getElementById('sttHeard').className='stt-heard';
+  document.getElementById('sttIcon').textContent=match?'✅':'❌';
+  document.getElementById('sttStrip').className='stt-strip '+(match?'correct':'wrong');
+
+  if(match){
+    removeTapHint();
+    const isFirst=words[idx].retries===0;
+    sessCorrect++;lifetimeWords++;
+    comboCount++;if(comboCount>sessMaxCombo)sessMaxCombo=comboCount;
+    updateComboDisplay();
+    const pts=calcXP(isFirst);
+    setWordCls(idx,'correct');awardXP(pts,words[idx].el);playDing();updateScoreUI();
+    setTimeout(()=>{if(isRunning&&!isPaused)tutorWordAt(idx+1);},700);
+  }else{
+    sessWrong++;words[idx].retries++;retryCount++;
+    comboCount=0;updateComboDisplay();
+    setWordCls(idx,'wrong active');updateScoreUI();playBeep();
+    const el=words[idx].el;
+    if(el){
+      const rp=document.createElement('span');rp.className='retry-prompt';
+      rp.textContent='மீண்டும் முயலுங்கள்';el.after(rp);
+      setTimeout(()=>{try{rp.remove();}catch(e){}},2200);
+    }
+    if(retryCount>=3){
+      speakHint(idx);
+      setTimeout(()=>{if(isRunning&&!isPaused)tutorWordAt(idx+1);},3500);
+    }else if(retryCount===2){
+      setTimeout(()=>{
+        if(!isRunning||isPaused)return;
+        speakWordAloud(idx);showTapHint(idx);
+      },900);
+    }else{
+      setTimeout(()=>{
+        if(!isRunning||!micArmed||isPaused)return;
+        tutorListening=true;processingResult=false;
+        setLED('listening');
+        if(!recognitionActive)startRecognition();
+        showTapHint(idx);
+      },1200);
+    }
+  }
+}
+
+// ═══════════════════════════════════════
+// FUZZY MATCH
+// ═══════════════════════════════════════
+const SUFFIXES=['ஆல்','இல்','க்கு','உம்','ஐ','ஓடு','ஆன','இன்','கள்','தான்','யும்','வும்','களும்','விட்டது','கிறது','ந்தது','த்தில்','த்தை'];
+function stripSuffix(w){for(const s of SUFFIXES)if(w.endsWith(s)&&w.length>s.length+1)return w.slice(0,w.length-s.length);return w;}
+function lev(a,b){
+  const m=a.length,n=b.length,dp=Array.from({length:m+1},(_,i)=>[i,...Array(n).fill(0)]);
+  for(let j=0;j<=n;j++)dp[0][j]=j;
+  for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)dp[i][j]=a[i-1]===b[j-1]?dp[i-1][j-1]:1+Math.min(dp[i-1][j],dp[i][j-1],dp[i-1][j-1]);
+  return dp[m][n];
+}
+function fuzzyMatch(spoken,target){
+  const s=spoken.trim().toLowerCase(),t=target.trim().toLowerCase();
+  if(!s||!t)return false;
+  if(s===t||s.includes(t)||t.includes(s))return true;
+  if(stripSuffix(s)===stripSuffix(t))return true;
+  return lev(s,t)<=Math.floor(Math.max(s.length,t.length)*.3);
+}
+
+// ═══════════════════════════════════════
+// SOUND EFFECTS
+// ═══════════════════════════════════════
+let audioCtx=null;
+function getCtx(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
+function playDing(){
+  try{const c=getCtx(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type='sine';
+    o.frequency.setValueAtTime(880,c.currentTime);o.frequency.exponentialRampToValueAtTime(1320,c.currentTime+.08);
+    g.gain.setValueAtTime(.18,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.28);
+    o.start();o.stop(c.currentTime+.28);}catch(e){}
+}
+function playBeep(){
+  try{const c=getCtx(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);
+    o.frequency.setValueAtTime(330,c.currentTime);o.frequency.exponentialRampToValueAtTime(190,c.currentTime+.2);
+    g.gain.setValueAtTime(.12,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+.24);
+    o.start();o.stop(c.currentTime+.24);}catch(e){}
+}
+function playHarp(stars){
+  try{const c=getCtx();
+    const freqs=stars===3?[523,659,784,1047]:stars===2?[523,659,784]:[523,659];
+    freqs.forEach((f,i)=>{
+      const o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type='sine';o.frequency.value=f;
+      const t=c.currentTime+i*.14;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.22,t+.04);g.gain.exponentialRampToValueAtTime(.001,t+.7);
+      o.start(t);o.stop(t+.75);});}catch(e){}
+}
+
+// ═══════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════
+function setWordCls(idx,cls){const w=words[idx];if(w&&w.el)w.el.className='word'+(cls?' '+cls:'');}
+function clearActive(){document.querySelectorAll('.word.active,.word.tutor-wait').forEach(e=>e.classList.remove('active','tutor-wait'));removeTapHint();}
+function scrollToWord(idx){const w=words[idx];if(w&&w.el)w.el.scrollIntoView({behavior:'smooth',block:'center'});}
+function updateProgressBar(idx){
+  if(!words.length)return;
+  const pct=Math.round(idx/words.length*100);
+  document.getElementById('progressFill').style.width=pct+'%';
+  document.getElementById('scorePct').textContent=pct+'%';
+}
+function updateScoreUI(){
+  document.getElementById('scoreCorrect').textContent=sessCorrect;
+  document.getElementById('scoreWrong').textContent=sessWrong;
+}
+function updateSpeed(val){
+  currentSpeed=parseFloat(val);
+  document.getElementById('speedVal').textContent=currentSpeed.toFixed(2).replace(/\.?0+$/,'')+'×';
+  if(isRunning&&!isPaused&&mode==='read'){synth.cancel();readWordAt(currentWordIdx);}
+}
+function setBtn(state){
+  document.getElementById('btnPlay').disabled=(state==='playing'||state==='paused');
+  document.getElementById('btnPause').disabled=(state!=='playing');
+  document.getElementById('btnResume').disabled=(state!=='paused');
+  document.getElementById('btnStop').disabled=(state==='stopped');
+}
+
+// ═══════════════════════════════════════
+// STORY LIST
+// ═══════════════════════════════════════
+function buildStoryList(){
+  const list=document.getElementById('storyList');list.innerHTML='';
+  STORIES.forEach(s=>{
+    const btn=document.createElement('button');btn.className='story-btn';btn.id='sb_'+s.id;
+    const saved=localStorage.getItem('tamilStory_'+s.id);
+    const stars=saved?JSON.parse(saved).stars:0;
+    btn.innerHTML=s.title+'<small>'+s.subtitle+' · '+s.level+'</small>';
+    if(stars>0){const sd=document.createElement('span');sd.className='story-stars';sd.textContent='⭐'.repeat(stars);btn.appendChild(sd);}
+    btn.onclick=()=>loadStory(s);list.appendChild(btn);
+  });
+}
+function updateStoryBadge(id,stars){
+  const btn=document.getElementById('sb_'+id);if(!btn)return;
+  const ex=btn.querySelector('.story-stars');if(ex)ex.remove();
+  const sd=document.createElement('span');sd.className='story-stars';sd.textContent='⭐'.repeat(stars);btn.appendChild(sd);
+  localStorage.setItem('tamilStory_'+id,JSON.stringify({stars}));
+}
+function loadStory(story,resetPos=true){
+  stopSession();sessCorrect=0;sessWrong=0;sessXP=0;sessMaxCombo=0;
+  document.querySelectorAll('.story-btn').forEach(b=>b.classList.remove('active'));
+  const btn=document.getElementById('sb_'+story.id);if(btn)btn.classList.add('active');
+  currentStoryId=story.id;
+  document.getElementById('bookTitle').textContent=story.title;
+  document.getElementById('bookSubtitle').textContent=story.subtitle+' · '+story.level;
+  document.getElementById('emptyState').style.display='none';
+  document.getElementById('bookContent').style.display='block';
+  renderWords(story.text,resetPos?0:null);
+  if(resetPos){currentWordIdx=0;saveSession(0);}
+  updateScoreUI();
+}
+function loadCustomText(name,text){
+  stopSession();sessCorrect=0;sessWrong=0;sessXP=0;sessMaxCombo=0;
+  document.querySelectorAll('.story-btn').forEach(b=>b.classList.remove('active'));
+  currentStoryId='custom_'+name;
+  document.getElementById('bookTitle').textContent=name;
+  document.getElementById('bookSubtitle').textContent='பதிவேற்றிய கோப்பு · Uploaded File';
+  document.getElementById('emptyState').style.display='none';
+  document.getElementById('bookContent').style.display='block';
+  renderWords(text,0);currentWordIdx=0;saveSession(0);
+  toast(name+' ஏற்றப்பட்டது ✓');
+}
+
+// ═══════════════════════════════════════
+// PERSISTENCE
+// ═══════════════════════════════════════
+function saveSession(wordIdx){localStorage.setItem('tamilReader_v4',JSON.stringify({storyId:currentStoryId,wordIdx,ts:Date.now()}));}
+function saveLifetime(){localStorage.setItem('tamilLifetime',JSON.stringify({xp:xpTotal,stars:lifetimeStars,words:lifetimeWords}));}
+function loadLifetime(){
+  const d=localStorage.getItem('tamilLifetime');
+  if(d){try{const o=JSON.parse(d);xpTotal=o.xp||0;lifetimeStars=o.stars||0;lifetimeWords=o.words||0;}catch(e){}}
+  updateXPDisplay();updateComboDisplay();updateLifetimeUI();
+  BADGES.forEach(b=>{const el=document.getElementById(b.id);if(xpTotal>=b.xp)el.removeAttribute('data-locked');});
+}
+function updateLifetimeUI(){
+  document.getElementById('ltXP').textContent=xpTotal;
+  document.getElementById('ltStars').textContent='⭐ '+lifetimeStars;
+  document.getElementById('ltWords').textContent=lifetimeWords;
+}
+
+// ═══════════════════════════════════════
+// FILES
+// ═══════════════════════════════════════
+function setupDrag(){
+  const zone=document.getElementById('uploadZone');
+  document.body.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag-over');});
+  document.body.addEventListener('dragleave',()=>zone.classList.remove('drag-over'));
+  document.body.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f)handleFile(f);});
+}
+function setupFileInput(){document.getElementById('fileInput').addEventListener('change',e=>{if(e.target.files[0])handleFile(e.target.files[0]);});}
+async function handleFile(file){
+  const ext=file.name.split('.').pop().toLowerCase();toast('கோப்பை ஏற்றுகிறது...');
+  try{
+    if(ext==='txt')loadCustomText(file.name.replace(/\.[^.]+$/,''),await file.text());
+    else if(ext==='pdf')loadCustomText(file.name.replace(/\.[^.]+$/,''),await extractPDF(file));
+    else if(ext==='epub')loadCustomText(file.name.replace(/\.[^.]+$/,''),await extractEPUB(file));
+    else toast('ஆதரிக்கப்படாத கோப்பு வகை');
+  }catch(err){toast('கோப்பை படிக்க முடியவில்லை');}
+}
+async function extractPDF(file){
+  pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const pdf=await pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;
+  let out='';
+  for(let i=1;i<=pdf.numPages;i++){const p=await pdf.getPage(i);const c=await p.getTextContent();out+=c.items.map(it=>it.str).join(' ')+'\n';}
+  return out;
+}
+async function extractEPUB(file){
+  const zip=await JSZip.loadAsync(await file.arrayBuffer());let text='';
+  const hf=Object.keys(zip.files).filter(n=>/\.(html?|xhtml)$/.test(n));
+  for(const f of hf){const tmp=document.createElement('div');tmp.innerHTML=await zip.files[f].async('string');text+=tmp.textContent+'\n\n';}
+  return text||'EPUB படிக்க முடியவில்லை.';
+}
+
+// ═══════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════
+let tt;
+function toast(msg){
+  const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),3200);
+}
+</script>
+</body>
+</html>
